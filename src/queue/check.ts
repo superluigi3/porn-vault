@@ -1,5 +1,6 @@
-import Jimp from "jimp";
 import { basename } from "path";
+import sharp from "sharp";
+import phash from "typings";
 
 import { getConfig } from "../config";
 import { imageCollection } from "../database";
@@ -88,12 +89,11 @@ async function processImage(imagePath: string, readImage = true, generateThumb =
     const image = new Image(imageName);
     image.path = imagePath;
 
-    let jimpImage: Jimp | undefined;
     if (readImage) {
-      jimpImage = await Jimp.read(imagePath);
-      image.meta.dimensions.width = jimpImage.bitmap.width;
-      image.meta.dimensions.height = jimpImage.bitmap.height;
-      image.hash = jimpImage.hash();
+      const sharpImageMetadata = await sharp(imagePath).metadata();
+      image.meta.dimensions.width = sharpImageMetadata.width!;
+      image.meta.dimensions.height = sharpImageMetadata.height!;
+      image.hash = await phash(imagePath);
     }
 
     // Extract scene
@@ -112,18 +112,15 @@ async function processImage(imagePath: string, readImage = true, generateThumb =
     await Image.setLabels(image, [...new Set(extractedLabels)]);
 
     if (generateThumb) {
-      if (!jimpImage) {
-        jimpImage = await Jimp.read(imagePath);
-      }
       // Small image thumbnail
       logger.verbose("Creating image thumbnail");
-      if (jimpImage.bitmap.width > jimpImage.bitmap.height && jimpImage.bitmap.width > 320) {
-        jimpImage.resize(320, Jimp.AUTO);
-      } else if (jimpImage.bitmap.height > 320) {
-        jimpImage.resize(Jimp.AUTO, 320);
-      }
       image.thumbPath = libraryPath(`thumbnails/images/${image._id}.jpg`);
-      await jimpImage.writeAsync(image.thumbPath);
+      await sharp(imagePath)
+        .resize(320, 320, {
+          fit: "inside",
+        })
+        .jpeg({ quality: 100 })
+        .toFile(image.thumbPath);
     }
 
     await imageCollection.upsert(image._id, image);
@@ -156,6 +153,7 @@ export async function checkImageFolders(): Promise<void> {
 
     await walk({
       dir: folder,
+      // TODO add webp?
       extensions: [".jpg", ".jpeg", ".png", ".gif"],
       exclude: config.scan.excludeFiles,
       cb: async (path) => {

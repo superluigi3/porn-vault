@@ -1,5 +1,6 @@
 import { createWriteStream, ReadStream } from "fs";
-import Jimp from "jimp";
+import sharp from "sharp";
+import phash from "typings";
 
 import { getConfig } from "../../config";
 import { ApplyActorLabelsEnum } from "../../config/schema";
@@ -125,6 +126,7 @@ export default {
     if (filename.includes(".gif")) {
       processedExt = ".gif";
     }
+    // TODO: other extension required?
 
     const sourcePath = libraryPath(`images/${image._id}${processedExt}`);
     image.path = sourcePath;
@@ -138,42 +140,50 @@ export default {
         args.crop.height = Math.round(args.crop.height);
       }
 
-      const _image = await Jimp.read(outPath);
-      image.hash = _image.hash();
+      const _image = sharp(outPath);
+      image.hash = await phash(outPath);
 
       if (args.crop) {
         logger.verbose(`Cropping image...`);
-        _image.crop(args.crop.left, args.crop.top, args.crop.width, args.crop.height);
+        _image.extract({
+          left: args.crop.left,
+          top: args.crop.top,
+          width: args.crop.width,
+          height: args.crop.height,
+        });
         image.meta.dimensions.width = args.crop.width;
         image.meta.dimensions.height = args.crop.height;
       } else {
-        image.meta.dimensions.width = _image.bitmap.width;
-        image.meta.dimensions.height = _image.bitmap.height;
+        const imageMetadata = await _image.metadata();
+        image.meta.dimensions.width = imageMetadata.width!;
+        image.meta.dimensions.height = imageMetadata.height!;
       }
 
       if (args.compress === true) {
         logger.verbose("Resizing image to thumbnail size");
         const MAX_SIZE = config.processing.imageCompressionSize;
 
-        if (_image.bitmap.width > _image.bitmap.height && _image.bitmap.width > MAX_SIZE) {
-          _image.resize(MAX_SIZE, Jimp.AUTO);
-        } else if (_image.bitmap.height > MAX_SIZE) {
-          _image.resize(Jimp.AUTO, MAX_SIZE);
-        }
+        _image.resize(MAX_SIZE, MAX_SIZE, { fit: "inside" });
       }
 
-      await _image.writeAsync(sourcePath);
+      switch (processedExt) {
+        case ".jpg": {
+          _image.jpeg({ quality: 100 });
+          break;
+        }
+        case ".png": {
+          _image.png({ compressionLevel: 0 });
+          break;
+        }
+      }
+      await _image.toFile(sourcePath);
 
       if (!isBlacklisted(image.name)) {
         image.thumbPath = libraryPath(`thumbnails/images/${image._id}.jpg`);
         logger.verbose("Creating image thumbnail");
         // Small image thumbnail
-        if (_image.bitmap.width > _image.bitmap.height && _image.bitmap.width > 320) {
-          _image.resize(320, Jimp.AUTO);
-        } else if (_image.bitmap.height > 320) {
-          _image.resize(Jimp.AUTO, 320);
-        }
-        await _image.writeAsync(image.thumbPath);
+        _image.resize(320, 320, { fit: "inside" });
+        await _image.toFile(image.thumbPath);
       }
 
       logger.verbose(`Image processing done.`);

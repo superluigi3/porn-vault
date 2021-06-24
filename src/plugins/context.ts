@@ -3,13 +3,13 @@ import boxen from "boxen";
 import ffmpeg from "fluent-ffmpeg";
 import * as fs from "fs";
 import inquirer from "inquirer";
-import jimp from "jimp";
 import moment from "moment";
 import ora from "ora";
 import * as os from "os";
 import * as nodepath from "path";
 import readline from "readline";
 import semver from "semver";
+import sharp from "sharp";
 import * as util from "util";
 import YAML from "yaml";
 import * as zod from "zod";
@@ -26,7 +26,6 @@ export const modules = {
   $ffmpeg: ffmpeg,
   $fs: fs,
   $inquirer: inquirer,
-  $jimp: jimp,
   $loader: ora,
   $moment: moment,
   $os: os,
@@ -34,6 +33,7 @@ export const modules = {
   $readline: readline,
   $semver: semver,
   $util: util,
+  $sharp: sharp,
   $yaml: YAML,
   $zod: zod,
 };

@@ -1,4 +1,4 @@
-import Jimp from "jimp";
+import sharp from "sharp";
 
 import { imageCollection, sceneCollection } from "../../database";
 import { FFProbeContainers } from "../../ffmpeg/ffprobe";
@@ -50,9 +50,9 @@ export default {
 
     // Pre 0.27 compatibility: add image dimensions on demand and save to db
     if (image.path && (!image.meta.dimensions.height || !image.meta.dimensions.width)) {
-      const jimpImage = await Jimp.read(image.path);
-      image.meta.dimensions.width = jimpImage.bitmap.width;
-      image.meta.dimensions.height = jimpImage.bitmap.height;
+      const sharpImageMetadata = await sharp(image.path).metadata();
+      image.meta.dimensions.width = sharpImageMetadata.width!;
+      image.meta.dimensions.height = sharpImageMetadata.height!;
 
       await imageCollection.upsert(image._id, image);
     }

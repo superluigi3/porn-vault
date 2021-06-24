@@ -1,7 +1,6 @@
 import ffmpeg, { FfprobeData } from "fluent-ffmpeg";
 import { existsSync, statSync } from "fs";
-import Jimp from "jimp";
-import mergeImg from "merge-img";
+import joinImages from "join-images";
 import path, { basename, resolve } from "path";
 import asyncPool from "tiny-async-pool";
 
@@ -575,13 +574,13 @@ export default class Scene {
 
       logger.debug(`Creating preview strip for ${scene._id}...`);
 
-      const img = (await mergeImg(files)) as Jimp;
+      const sharpImg = await joinImages(files);
 
       const file = path.join(libraryPath("previews/"), `${scene._id}.jpg`);
 
       logger.debug(`Writing to file ${file}...`);
 
-      img.write(file, async () => {
+      sharpImg.toFile(file, async () => {
         logger.debug("Finished generating preview.");
 
         await rimrafAsync(tmpFolder);

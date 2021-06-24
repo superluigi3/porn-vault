@@ -1,6 +1,6 @@
-import Jimp from "jimp";
 import Vibrant from "node-vibrant";
 import { resolve } from "path";
+import sharp from "sharp";
 
 import { actorCollection, imageCollection } from "../database";
 import { searchImages } from "../search/image";
@@ -206,9 +206,9 @@ export default class Image {
     ) {
       return false;
     }
-    const jimpImage = await Jimp.read(image.path);
-    image.meta.dimensions.width = jimpImage.bitmap.width;
-    image.meta.dimensions.height = jimpImage.bitmap.height;
+    const sharpImageMetadata = await sharp(image.path).metadata();
+    image.meta.dimensions.width = sharpImageMetadata.width!;
+    image.meta.dimensions.height = sharpImageMetadata.height!;
     return true;
   }
 
