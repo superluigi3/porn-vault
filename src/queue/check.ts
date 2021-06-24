@@ -1,6 +1,6 @@
 import { basename } from "path";
 import sharp from "sharp";
-import phash from "typings";
+import phash from "sharp-phash";
 
 import { getConfig } from "../config";
 import { imageCollection } from "../database";

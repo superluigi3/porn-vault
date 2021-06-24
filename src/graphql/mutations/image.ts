@@ -1,6 +1,6 @@
 import { createWriteStream, ReadStream } from "fs";
 import sharp from "sharp";
-import phash from "typings";
+import phash from "sharp-phash";
 
 import { getConfig } from "../../config";
 import { ApplyActorLabelsEnum } from "../../config/schema";
